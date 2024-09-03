@@ -210,7 +210,6 @@ function ConRO.Paladin.Holy(_, timeShift, currentSpell, gcd, tChosen, pvpChosen)
 	local _HolyPrism, _HolyPrism_RDY = ConRO:AbilityReady(Ability.HolyPrism, timeShift);
 	local _HolyShock, _HolyShock_RDY = ConRO:AbilityReady(Ability.HolyShock, timeShift);
 	local _LightofDawn, _LightofDawn_RDY = ConRO:AbilityReady(Ability.LightofDawn, timeShift);
-	local _LightsHammer, _LightsHammer_RDY = ConRO:AbilityReady(Ability.LightsHammer, timeShift);
 
 		if tChosen[Ability.SanctifiedWrath.talentID] then
 			_AvengingWrath, _AvengingWrath_RDY = ConRO:AbilityReady(Ability.SanctifiedWrath, timeShift);
@@ -247,7 +246,7 @@ function ConRO.Paladin.Holy(_, timeShift, currentSpell, gcd, tChosen, pvpChosen)
 	ConRO:AbilityRaidBuffs(_BeaconofFaith, _BeaconofFaith_RDY and not ConRO:OneBuff(Form.BeaconofFaith));
 
 	ConRO:AbilityBurst(_AvengingWrath, _AvengingWrath_RDY and ConRO:BurstMode(_AvengingWrath));
-	ConRO:AbilityBurst(_LightsHammer, _LightsHammer_RDY and _is_Enemy and _HolyPower < 3 and ConRO:BurstMode(_LightsHammer));
+
 
 	ConRO:AbilityRaidBuffs(_LightofDawn, _LightofDawn_RDY and _HolyPower >= 3 and not _VanquishersHammer_BUFF);
 	ConRO:AbilityRaidBuffs(_WordofGlory, _WordofGlory_RDY and _HolyPower >= 3);
@@ -477,8 +476,21 @@ function ConRO.Paladin.ProtectionDef(_, timeShift, currentSpell, gcd, tChosen, p
 	local _DivineShield, _DivineShield_RDY = ConRO:AbilityReady(Ability.DivineShield, timeShift);
 	local _EyeofTyr, _EyeofTyr_RDY = ConRO:AbilityReady(Ability.EyeofTyr, timeShift);
 	local _GuardianofAncientKings, _GuardianofAncientKings_RDY = ConRO:AbilityReady(Ability.GuardianofAncientKings, timeShift);
-		local _GuardianofAncientKings_BUFF = ConRO:Aura(Buff.GuardianofAncientKings, timeShift);
-		local _GuardianofAncientKings_ID = select(7, GetSpellInfo("Guardian of Ancient Kings"));
+	local _GuardianofAncientKings_BUFF = false
+
+	-- Function to check if the "Guardian of Ancient Kings" buff is active
+	for i = 1, 40 do
+		local aura = C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL")
+		if not aura then break end  -- Exit if no more auras
+
+		if aura.spellId == Ability.GuardianofAncientKings then
+			_GuardianofAncientKings_BUFF = true
+			break
+		end
+	end
+
+	local _GuardianofAncientKings_ID = Ability.GuardianofAncientKings  -- Assuming Ability.GuardianofAncientKings is the spell ID
+
 	local _ShieldoftheRighteous, _ShieldoftheRighteous_RDY = ConRO:AbilityReady(Ability.ShieldoftheRighteous, timeShift);
 		local _ShieldoftheRighteous_BUFF = ConRO:Aura(Buff.ShieldoftheRighteous, timeShift + 1);
 		local _ShiningLight_BUFF, _, _ShiningLight_DUR = ConRO:Aura(Buff.ShiningLight, timeShift);
@@ -554,9 +566,10 @@ function ConRO.Paladin.Retribution(_, timeShift, currentSpell, gcd, tChosen, pvp
 			local _FinalVerdict_BUFF = ConRO:Aura(Buff.FinalVerdict, timeShift);
 		local _DivineArbiter_BUFF, _DivineArbiter_COUNT = ConRO:Aura(Buff.DivineArbiter, timeShift);
 	local _WakeofAshes, _WakeofAshes_RDY = ConRO:AbilityReady(Ability.WakeofAshes, timeShift);
+		local _RadiantGlory_Buff = ConRO:Aura(Buff.RadiantGlory, timeShift);
 	local _WordofGlory, _WordofGlory_RDY = ConRO:AbilityReady(Ability.WordofGlory, timeShift);
 
-	local _enemies_in_30yrds, _target_in_30yrds = ConRO:Targets(Ability.Judgment);
+
 
 	if _DivinePurpose_BUFF then
 		_HolyPower = 5;
@@ -605,7 +618,7 @@ function ConRO.Paladin.Retribution(_, timeShift, currentSpell, gcd, tChosen, pvp
 			end
 		end
 
-		if _Crusade_RDY and not _Crusade_BUFF and _HolyPower >= 3 and ConRO:FullMode(_Crusade, 120) then
+		if _Crusade_RDY and not _Crusade_BUFF and _HolyPower >= 3 and not tChosen[Ability.RadiantGlory.talentID] and ConRO:FullMode(_Crusade, 120) then
 			tinsert(ConRO.SuggestedSpells, _Crusade);
 			_Crusade_RDY = false;
 			_Crusade_BUFF = true;
@@ -658,11 +671,6 @@ function ConRO.Paladin.Retribution(_, timeShift, currentSpell, gcd, tChosen, pvp
 				_HolyPower = _HolyPower + 1;
 			end
 
-			if _Consecration_RDY and not tChosen[Ability.ConsecratedBlade.talentID] and (ConRO_AutoButton:IsVisible() and (_enemies_in_melee >= 2)) then
-				tinsert(ConRO.SuggestedSpells, _Consecration);
-				_Consecration_RDY = false;
-			end
-
 			if _DivineStorm_RDY and _EmpyreanPower_BUFF then
 				tinsert(ConRO.SuggestedSpells, _DivineStorm);
 				_EmpyreanPower_BUFF = false;
@@ -702,12 +710,6 @@ function ConRO.Paladin.Retribution(_, timeShift, currentSpell, gcd, tChosen, pvp
 		if _HammerofWrath_RDY and (_can_execute or _Crusade_BUFF or _AvengingWrath_BUFF) then
 			tinsert(ConRO.SuggestedSpells, _HammerofWrath);
 			_HammerofWrath_RDY = false;
-			_HolyPower = _HolyPower + 1;
-		end
-
-		if _Consecration_RDY and _target_in_melee and not tChosen[Ability.ConsecratedBlade.talentID] then
-			tinsert(ConRO.SuggestedSpells, _Consecration);
-			_Consecration_RDY = false;
 			_HolyPower = _HolyPower + 1;
 		end
 	end
